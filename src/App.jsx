@@ -8,7 +8,7 @@ function App() {
 
   return (
     <>
-      <h1>go</h1>
+      <h1>wide</h1>
     </>
   );
 }
