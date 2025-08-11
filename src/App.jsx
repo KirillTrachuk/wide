@@ -9,6 +9,7 @@ function App() {
   return (
     <>
       <h1>wide</h1>
+      <img src="./assets/wide.png" alt="logo" />
     </>
   );
 }
