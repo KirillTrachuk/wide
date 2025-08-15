@@ -5,7 +5,7 @@
   margin: 0
   padding: 0
   box-sizing: border-box
-  color: #000000
+  color: #FFFDF3
 
 :root 
   --vh: 1vh
@@ -39,3 +39,141 @@ html,body
   font-family: "Roslindale Display Condensed"
   background: #000000
   overflow: hidden
+
+
+// Стили для вкладок
+.tabs-container
+  position: fixed
+  top: gem(30)
+  right: gem(30)
+  z-index: 1000
+
+.tabs
+  display: flex
+  gap: gem(10)
+
+.tab
+  width: gem(50)
+  height: gem(50)
+  border: 2px solid #000
+  background: transparent
+  color: #000
+  font-family: "TomatoGrotesk-SemiBold", sans-serif
+  font-size: gem(16)
+  font-weight: 600
+  cursor: pointer
+  transition: all 0.2s ease
+  border-radius: gem(8)
+  display: flex
+  align-items: center
+  justify-content: center
+  
+  &:hover
+    background: #000
+    color: #fff
+    
+  &.active
+    background: #000
+    color: #fff
+    transform: scale(1.1)
+
+.hero-section
+  display: flex
+  position: relative
+  width: 100vw
+  height: 100vh
+  overflow: hidden
+  align-items: center
+  gap: gem(138)
+
+
+.hero-section-frame
+  display: flex
+  position: relative
+  overflow: hidden
+  width: gem(600)
+  height: gem(710)
+  align-items: flex-end
+
+
+.hero-section-frame__image
+  display: flex
+  position: relative
+  width: gem(600)
+  height: gem(710)
+  overflow: hidden
+  transition: clip-path 1.5s cubic-bezier(0.54, 0.00, 0.27, 1.00)
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)
+  
+  .background-image
+    width: gem(600)
+    height: 100vh
+    
+  .mask-image, .mask-image-r
+    width: gem(601)
+    position: absolute
+    top: gem(100)
+    left: 0
+    object-fit: cover
+    object-position: center
+    z-index: 2
+    transition: transform 1.5s cubic-bezier(0.54, 0.00, 0.27, 1.00)
+    transform: translateY(0)
+    
+  .mask-image-r
+    top: 0
+    transition: transform 1.5s cubic-bezier(0.54, 0.00, 0.27, 1.00)
+
+.hero-section-frame__image.mask-up
+  clip-path: polygon(0 0, 100% 0, 100% 0%, 0 0%)
+  .mask-image
+    transform: translateY(-100vh)
+
+.hero-section-frame__image.mini 
+  height: gem(680)
+  position: absolute
+  left: 0
+  z-index: 10
+  transition: clip-path 1.5s cubic-bezier(0.54, 0.00, 0.27, 1.00)
+  pointer-events: none
+  
+  clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%)
+  
+  .mask-image-r
+    transform: translateY(6.8rem)
+  
+  &.show
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)
+    pointer-events: auto
+    
+    .mask-image-r
+      transform: translateY(0)
+  
+  &.hide
+    clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%)
+    pointer-events: none
+    
+    .mask-image-r
+      transform: translateY(6.8rem)
+
+  
+.hero-section-grid
+  display: flex
+  flex-direction: column
+  width: gem(600)
+  height: gem(710)
+  justify-content: space-between
+  .hero-section-grid-top, .hero-section-grid-bottom
+    display: flex
+    flex-direction: row
+    gap: gem(20)
+    .hero-section-grid-top__item, .hero-section-grid-bottom__item
+      display: flex
+      width: gem(135)
+      overflow: hidden
+      position: relative
+      .inside-image
+        width: gem(135)
+        object-fit: cover
+        object-position: center
+        
