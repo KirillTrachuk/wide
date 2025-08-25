@@ -47,10 +47,38 @@ html,body
   top: gem(30)
   right: gem(30)
   z-index: 1000
+  display: flex
+  flex-direction: column
+  gap: gem(20)
 
 .tabs
   display: flex
   gap: gem(10)
+
+.layout-toggle
+  width: gem(50)
+  height: gem(50)
+  border: 2px solid #000
+  background: transparent
+  color: #000
+  font-family: "TomatoGrotesk-SemiBold", sans-serif
+  font-size: gem(20)
+  font-weight: 600
+  cursor: pointer
+  transition: all 0.2s ease
+  border-radius: gem(8)
+  display: flex
+  align-items: center
+  justify-content: center
+  
+  &:hover
+    background: #000
+    color: #fff
+    
+  &.reversed
+    background: #000
+    color: #fff
+    transform: scale(1.1)
 
 .tab
   width: gem(50)
@@ -85,6 +113,7 @@ html,body
   overflow: hidden
   align-items: center
   gap: gem(138)
+  transition: gap 1.2s cubic-bezier(0.54, 0.00, 0.27, 1.00)
 
 
 .hero-section-frame
@@ -94,6 +123,7 @@ html,body
   width: gem(600)
   height: gem(710)
   align-items: flex-end
+  transform: translateX(0)
 
 
 .hero-section-frame__image
@@ -163,6 +193,7 @@ html,body
   width: gem(600)
   height: gem(710)
   justify-content: space-between
+  transform: translateX(0)
   .hero-section-grid-top, .hero-section-grid-bottom
     display: flex
     flex-direction: row
