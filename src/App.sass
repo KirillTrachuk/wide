@@ -41,19 +41,26 @@ html,body
   overflow: hidden
 
 
-// Стили для вкладок
 .tabs-container
   position: fixed
-  top: gem(30)
-  right: gem(30)
   z-index: 1000
   display: flex
-  flex-direction: column
+  width: 100%
+  justify-content: space-between
   gap: gem(20)
+  padding: 0 gem(10)
+  .label
+    font-family: "TomatoGrotesk-SemiBold", sans-serif
+    font-size: gem(14)
+    color: #000000
+    line-height: 1
+    text-transform: uppercase
 
 .tabs
   display: flex
   gap: gem(10)
+  &:nth-of-type(1)
+    gap: 0
 
 .layout-toggle
   width: gem(50)
@@ -81,29 +88,42 @@ html,body
     transform: scale(1.1)
 
 .tab
-  width: gem(50)
-  height: gem(50)
-  border: 2px solid #000
+  // width: gem(50)
+  // height: gem(50)
+  border: none
   background: transparent
-  color: #000
+  color: #767272
   font-family: "TomatoGrotesk-SemiBold", sans-serif
   font-size: gem(16)
   font-weight: 600
   cursor: pointer
-  transition: all 0.2s ease
-  border-radius: gem(8)
+  transition: all 0.3s ease
+  // border-radius: gem(8)
   display: flex
   align-items: center
   justify-content: center
   
   &:hover
-    background: #000
-    color: #fff
+    color: #8c4949
     
   &.active
-    background: #000
-    color: #fff
+    color: #000
     transform: scale(1.1)
+  &.active.reverse-right
+    transform: translateY(gem(10)) scale(1.1)
+
+.reverse-right
+  transform: translateY(gem(10))
+  
+.tab-indicator
+  font-family: "TomatoGrotesk-SemiBold", sans-serif
+  font-size: gem(12)
+  color: #000
+  line-height: 1
+  align-self: center
+  padding: 0 gem(8)
+  pointer-events: none
+  user-select: none
 
 .hero-section
   display: flex
@@ -124,6 +144,7 @@ html,body
   height: gem(710)
   align-items: flex-end
   transform: translateX(0)
+  z-index: 1
 
 
 .hero-section-frame__image
@@ -208,3 +229,125 @@ html,body
         object-fit: cover
         object-position: center
         
+
+.hero-section-grid-bottom__item
+  .mask-image-r
+    position: absolute
+    width: 100%
+    transform: translate(0, -100%)
+    z-index: 10
+
+.vertical-ticker
+  display: flex
+  flex-direction: column
+  gap: gem(170)
+  right: gem(470)
+  top: gem(1000)
+  position: absolute  
+  .vertical-ticker__item
+    display: flex
+    width: gem(135)
+    transform: scale(1.7, 1.7)
+    overflow: hidden
+    position: relative
+    .inside-image
+      width: gem(135)
+      object-fit: cover
+      object-position: center
+
+
+.text-under-photo
+  display: flex
+  flex-direction: column
+  position: absolute
+  width: gem(600)
+  height: gem(25)
+  align-items: center
+  left: 0
+  bottom: 0
+  gap: gem(10)
+  .first-line, .second-line, .third-line, .fourth-line
+    display: flex
+    width: 100%
+    justify-content: space-between
+    position: absolute
+    padding: 0 0 0 gem(10)
+    p
+      font-size: gem(14)
+      color: #000
+      line-height: 1
+      font-family: "TomatoGrotesk-SemiBold", sans-serif
+.text-inside-grid,.text-inside-grid-second
+  display: flex
+  position: absolute
+  width: gem(600)
+  height: gem(710)
+  align-items: center
+  justify-content: space-between
+  pointer-events: none
+  p
+    font-size: gem(14)
+    text-transform: uppercase
+    color: #000
+    line-height: 1
+    font-family: "TomatoGrotesk-SemiBold", sans-serif
+  .text-inside-grid__item-center
+    width: gem(392)
+
+// .text-inside-grid
+//   opacity: 0
+  
+.text-inside-grid-second
+  opacity: 1
+  display: flex
+  width: gem(915)
+  flex-direction: column
+  justify-content: flex-start
+  align-items: flex-end
+  transform: translateX(gem(-120))
+  &-top
+    display: flex
+    width: 100% 
+    height: gem(160)
+    justify-content: space-between
+    &-left 
+      display: flex
+      flex-direction: column
+      justify-content: space-between
+    &-right
+      display: flex
+      justify-content: space-between
+      position: relative
+      p 
+        &:nth-of-type(2)
+          position: absolute
+          transform: translateX(gem(440))
+  .text-inside-grid__item-center
+    width: gem(241)
+    transform: translate(4rem, -0.9rem)
+    will-change: transform
+
+
+.text-third-slide
+  display: flex
+  position: absolute
+  right: 0
+  opacity: 0
+  .text-frame
+    display: flex
+    flex-direction: column
+    position: absolute
+    .text-frame-client, .text-frame-type
+      display: flex
+      width: gem(228)
+      justify-content: space-between
+    &:nth-of-type(1)
+      top: gem(-80)
+      right: gem(160)
+    &:nth-of-type(2)
+      top: gem(133)
+      right: gem(-95)
+    &:nth-of-type(3)
+      top: gem(358)
+      right: gem(160)
+      
