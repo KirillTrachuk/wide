@@ -94,7 +94,7 @@ html,body
   background: transparent
   color: #767272
   font-family: "TomatoGrotesk-SemiBold", sans-serif
-  font-size: gem(16)
+  font-size: gem(14)
   font-weight: 600
   cursor: pointer
   transition: all 0.3s ease
@@ -117,7 +117,7 @@ html,body
   
 .tab-indicator
   font-family: "TomatoGrotesk-SemiBold", sans-serif
-  font-size: gem(12)
+  font-size: gem(14)
   color: #000
   line-height: 1
   align-self: center
@@ -222,20 +222,26 @@ html,body
     .hero-section-grid-top__item, .hero-section-grid-bottom__item
       display: flex
       width: gem(135)
+      border-radius: gem(2)
       overflow: hidden
       position: relative
       .inside-image
         width: gem(135)
+        height: gem(160)
         object-fit: cover
         object-position: center
         
-
-.hero-section-grid-bottom__item
-  .mask-image-r
-    position: absolute
-    width: 100%
-    transform: translate(0, -100%)
-    z-index: 10
+.hero-section-grid
+  .hero-section-grid-bottom
+    .hero-section-grid-bottom__item
+      .mask-image-r
+        position: absolute
+        width: 100%
+        transform: translate(0, -100%)
+        z-index: 10
+      &:nth-of-type(3)
+        .inside-image
+          width: 1.347rem
 
 .vertical-ticker
   display: flex
@@ -261,11 +267,12 @@ html,body
   flex-direction: column
   position: absolute
   width: gem(600)
-  height: gem(25)
+  height: gem(15)
   align-items: center
   left: 0
   bottom: 0
   gap: gem(10)
+  overflow: hidden
   .first-line, .second-line, .third-line, .fourth-line
     display: flex
     width: 100%
@@ -293,6 +300,7 @@ html,body
     font-family: "TomatoGrotesk-SemiBold", sans-serif
   .text-inside-grid__item-center
     width: gem(392)
+  
 
 // .text-inside-grid
 //   opacity: 0
@@ -326,6 +334,7 @@ html,body
     width: gem(241)
     transform: translate(4rem, -0.9rem)
     will-change: transform
+    text-align: end
 
 
 .text-third-slide
@@ -333,6 +342,12 @@ html,body
   position: absolute
   right: 0
   opacity: 0
+  .text-frame
+    position: relative
+    overflow: hidden
+    
+    .text-frame-client p, .text-frame-type p
+      will-change: transform, opacity
   .text-frame
     display: flex
     flex-direction: column
@@ -350,4 +365,26 @@ html,body
     &:nth-of-type(3)
       top: gem(358)
       right: gem(160)
+      
+.preloader
+  position: fixed
+  inset: 0
+  z-index: 9999
+  background: #FFFDF3
+  display: none
+  pointer-events: none
+
+.preloader__panel
+  position: absolute
+  top: 0
+  width: 50%
+  height: 100%
+  background: #c9c9c9
+  will-change: transform
+  &.left
+    left: 0
+    transform: translateX(0)
+  &.right
+    right: 0
+    transform: translateX(0)
       
