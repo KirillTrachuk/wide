@@ -13,46 +13,64 @@ function App() {
   const prevActiveTab = useRef(activeTab);
   const prevTabForGrid = useRef(activeTab);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [isAnimatingTabs, setIsAnimatingTabs] = useState(false);
+  const parallaxQuickRef = useRef([]);
+  const tab3ParallaxReadyRef = useRef(false);
+  const tab3ParallaxDelayRef = useRef(null);
+  const frameParallaxLockedRef = useRef(false);
+  const isReversingRef = useRef(false);
+  const reversingLockCountRef = useRef(0);
 
   const handleMouseMove = (e) => {
+    if (isReversingRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
     setMousePosition({ x: mouseX, y: mouseY });
 
-    // Parallax: move images a few pixels based on cursor position
+    if (activeTab === 3 && !tab3ParallaxReadyRef.current) return;
+    if (!parallaxQuickRef.current.length) return;
     const nx = (mouseX / rect.width) * 2 - 1; // -1..1
     const ny = (mouseY / rect.height) * 2 - 1; // -1..1
-    const rangePx = 6; // couple of pixels
-    const tx = nx * rangePx;
-    const ty = ny * rangePx;
-    const parallaxTargets = document.querySelectorAll(
-      "img.background-image, .inside-image, .vertical-ticker__item .inside-image"
+    const rangePx = 14;
+    parallaxQuickRef.current.forEach(
+      ({ el, xTo, yTo, depth, baseX = 0, baseY = 0 }) => {
+        if (
+          frameParallaxLockedRef.current &&
+          el &&
+          el.classList &&
+          el.classList.contains("hero-section-frame")
+        )
+          return;
+        // base target from cursor
+        const baseTx = nx * rangePx;
+        const baseTy = ny * rangePx;
+        // compute distance-based factor (closer to cursor => stronger)
+        const elRect = el.getBoundingClientRect();
+        const elCx = elRect.left - rect.left + elRect.width / 2;
+        const elCy = elRect.top - rect.top + elRect.height / 2;
+        const ex = (elCx - mouseX) / (rect.width / 2);
+        const ey = (elCy - mouseY) / (rect.height / 2);
+        const dist = Math.min(1, Math.hypot(ex, ey));
+        const nearFactor = 1.4; // strength when cursor is close
+        const farFactor = 0.6; // strength when cursor is far
+        const proximityFactor =
+          farFactor + (1 - dist) * (nearFactor - farFactor);
+        const tx = baseTx * depth * proximityFactor;
+        const ty = baseTy * depth * proximityFactor;
+        xTo(baseX + tx);
+        yTo(baseY + ty);
+      }
     );
-    if (parallaxTargets.length) {
-      gsap.to(parallaxTargets, {
-        x: tx,
-        y: ty,
-        duration: 0.2,
-        ease: "power2.out",
-        overwrite: false,
-      });
-    }
   };
 
   const handleMouseLeave = () => {
-    const parallaxTargets = document.querySelectorAll(
-      "img.background-image, .inside-image, .vertical-ticker__item .inside-image"
-    );
-    if (parallaxTargets.length) {
-      gsap.to(parallaxTargets, {
-        x: 0,
-        y: 0,
-        duration: 0.3,
-        ease: "power2.out",
-      });
-    }
+    if (!parallaxQuickRef.current.length) return;
+    parallaxQuickRef.current.forEach(({ xTo, yTo, baseX = 0, baseY = 0 }) => {
+      xTo(baseX);
+      yTo(baseY);
+    });
   };
 
   const handleTabClick = (tabNumber) => {
@@ -117,6 +135,7 @@ function App() {
   }, []);
 
   const handlePrevTab = () => {
+    if (isAnimatingTabs) return;
     const nextTab = activeTab <= 1 ? 1 : activeTab - 1;
     // If moving 3 → 2, animate to previous text from current (likely 2 → 1)
     if (activeTab === 3 && nextTab === 2) {
@@ -127,10 +146,13 @@ function App() {
     } else if (nextTab >= 3) {
       animateToIndex(2);
     }
+    setIsAnimatingTabs(true);
     setActiveTab(nextTab);
+    gsap.delayedCall(2.0, () => setIsAnimatingTabs(false));
   };
 
   const handleNextTab = () => {
+    if (isAnimatingTabs) return;
     const nextTab = activeTab >= 4 ? 4 : activeTab + 1;
     // If moving 2 → 3, animate to last text (index 2)
     if (activeTab === 2 && nextTab === 3) {
@@ -140,7 +162,9 @@ function App() {
     } else if (nextTab >= 3) {
       animateToIndex(2);
     }
+    setIsAnimatingTabs(true);
     setActiveTab(nextTab);
+    gsap.delayedCall(2.0, () => setIsAnimatingTabs(false));
   };
 
   const handleReverseLeft = () => {
@@ -192,12 +216,35 @@ function App() {
           { autoAlpha: 0 },
           { autoAlpha: 1, duration: 0.6, delay: 1.1, ease: "customEase" }
         );
+        // Masked reveal from bottom for each text-frame line
+        const maskedLines = thirdSlide.querySelectorAll(
+          ".text-frame .text-frame-client p, .text-frame .text-frame-type p"
+        );
+        maskedLines.forEach((el, i) =>
+          gsap.set(el, { y: "100%", autoAlpha: 0 })
+        );
+        gsap.to(maskedLines, {
+          y: "0%",
+          autoAlpha: 1,
+          duration: 0.8,
+          ease: "customEase",
+          stagger: 0.08,
+          delay: 1.1,
+        });
       }
     } else if (prevActiveTab.current === 1 && activeTab === 2) {
       const centerText = document.querySelector(
         ".text-inside-grid__item-center"
       );
       const rightText = document.querySelector(".text-inside-grid__item-right");
+      const firstFrame = document.querySelector(
+        ".hero-section-frame > .hero-section-frame__image:not(.mini)"
+      );
+      const frameMask = firstFrame?.querySelector(".mask-image");
+      if (frameMask) {
+        gsap.killTweensOf(frameMask);
+        gsap.set(frameMask, { clearProps: "transform" });
+      }
       if (centerText) {
         gsap.to(centerText, {
           autoAlpha: 0,
@@ -231,7 +278,7 @@ function App() {
             x: "0rem",
             y: "-0.9rem",
             duration: 1.2,
-            delay: 0.2,
+            delay: 0.8,
             ease: "customEase",
           }
         );
@@ -319,6 +366,17 @@ function App() {
         }
       });
     } else if (prevActiveTab.current === 3 && activeTab === 2) {
+      const top3El = document.querySelector(
+        ".hero-section-grid-top__item:nth-child(3)"
+      );
+      if (top3El) {
+        gsap.set(top3El, {
+          x: "-1rem",
+          y: "-1.5rem",
+          scale: 1.7,
+          transformOrigin: "bottom left",
+        });
+      }
       if (isLayoutReversed) {
         gsap.set(heroSectionFrame, {
           clipPath: "polygon(99% 0, 100% 0, 100% 1%, 99% 1%)",
@@ -348,30 +406,82 @@ function App() {
       }
       const thirdSlide = document.querySelector(".text-third-slide");
       if (thirdSlide) {
-        gsap.to(thirdSlide, {
-          autoAlpha: 0,
-          duration: 0.6,
+        const maskedLines = thirdSlide.querySelectorAll(
+          ".text-frame .text-frame-client p, .text-frame .text-frame-type p"
+        );
+        // Hide back into mask quickly (no stagger)
+        gsap.to(maskedLines, {
+          y: "200%",
+          duration: 0.25,
           ease: "customEase",
+          force3D: true,
         });
+        // Do not fade out the container; text is hidden by mask overflow
       }
     } else if (prevActiveTab.current === 3 && activeTab === 4) {
-      const thirdSlide = document.querySelector(".text-third-slide");
-      if (thirdSlide) {
-        gsap.to(thirdSlide, {
-          autoAlpha: 0,
-          duration: 0.6,
-          ease: "customEase",
+      const top3El = document.querySelector(
+        ".hero-section-grid-top__item:nth-child(3)"
+      );
+      if (top3El) {
+        gsap.set(top3El, {
+          x: "-1rem",
+          y: "-1.5rem",
+          scale: 1.7,
+          transformOrigin: "bottom left",
         });
       }
-    } else if (prevActiveTab.current === 4 && activeTab === 3) {
+      const top4El = document.querySelector(
+        ".hero-section-grid-top__item:nth-child(4)"
+      );
+      if (top4El) {
+        gsap.set(top4El, {
+          x: "-1rem",
+          y: "0.6rem",
+          transformOrigin: "bottom left",
+        });
+      }
+      const bottom3El = document.querySelector(
+        ".hero-section-grid-bottom__item:nth-child(3)"
+      );
+      if (bottom3El) {
+        gsap.set(bottom3El, {
+          x: "-10.48rem",
+          y: "0rem",
+          scaleX: 4.4444,
+          scaleY: 4.4375,
+          transformOrigin: "bottom left",
+        });
+      }
+      const bottom4El = document.querySelector(
+        ".hero-section-grid-bottom__item:nth-child(4)"
+      );
+      if (bottom4El) {
+        gsap.set(bottom4El, {
+          x: "-3.55rem",
+          y: 0,
+        });
+      }
       const thirdSlide = document.querySelector(".text-third-slide");
       if (thirdSlide) {
-        gsap.to(thirdSlide, {
-          autoAlpha: 1,
-          duration: 0.6,
-          delay: 1.1,
+        const maskedLines = thirdSlide.querySelectorAll(
+          ".text-frame .text-frame-client p, .text-frame .text-frame-type p"
+        );
+        gsap.to(maskedLines, {
+          y: "200%",
+          duration: 0.25,
           ease: "customEase",
+          force3D: true,
         });
+      }
+      // no show for second paragraph on 3→4
+    } else if (prevActiveTab.current === 4 && activeTab === 3) {
+      // no animation for the second paragraph on 4→3
+      const thirdSlide = document.querySelector(".text-third-slide");
+      if (thirdSlide) {
+        const maskedLines = thirdSlide.querySelectorAll(
+          ".text-frame .text-frame-client p, .text-frame .text-frame-type p"
+        );
+        gsap.set(maskedLines, { y: "200%" });
       }
     }
 
@@ -575,6 +685,8 @@ function App() {
           gsap.to(top3El, {
             x: "-1rem",
             y: "-1.5rem",
+            scale: 1.7,
+            transformOrigin: "bottom left",
             duration: 1.5,
             ease: "customEase",
             overwrite: true,
@@ -638,11 +750,53 @@ function App() {
           gsap.killTweensOf(bottomItem3[0]);
           gsap.to(bottomItem3[0], { y: 0, duration: 1.0, ease: "customEase" });
         }
+        const itemEl = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3)"
+        );
+        // Do not reposition bottom item 3 immediately; use delayed placement to match previous behavior
+        const top3El = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(3)"
+        );
+        const top4El = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(4)"
+        );
+        const bottom4El = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(4)"
+        );
+        const bottom3Mask = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3) .mask-image"
+        );
 
+        const tlReturn = gsap.timeline({
+          defaults: { duration: 1.5, ease: "customEase", overwrite: true },
+          onComplete: () => {
+            const thirdSlide = document.querySelector(".text-third-slide");
+            if (thirdSlide) {
+              const maskedLines = thirdSlide.querySelectorAll(
+                ".text-frame .text-frame-client p, .text-frame .text-frame-type p"
+              );
+              gsap.to(thirdSlide, {
+                autoAlpha: 1,
+                duration: 0.2,
+                ease: "customEase",
+              });
+              gsap.to(maskedLines, {
+                y: "0%",
+                duration: 0.35,
+                ease: "customEase",
+                force3D: true,
+                stagger: 0.04,
+              });
+            }
+          },
+        });
+
+        if (top3El) tlReturn.to(top3El, { x: "-1rem", y: "-1.5rem" }, 0);
+        if (top4El) tlReturn.to(top4El, { x: "-1rem", y: "0.6rem" }, 0);
+        if (bottom4El) tlReturn.to(bottom4El, { x: "-3.55rem", y: 0 }, 0);
+
+        // After the grid descends, place bottom item 3 and animate its mask as before
         gsap.delayedCall(1.0, () => {
-          const itemEl = document.querySelector(
-            ".hero-section-grid-bottom__item:nth-child(3)"
-          );
           if (itemEl) {
             gsap.set(itemEl, {
               x: "-10.48rem",
@@ -652,45 +806,6 @@ function App() {
               transformOrigin: "bottom left",
             });
           }
-          const top3El = document.querySelector(
-            ".hero-section-grid-top__item:nth-child(3)"
-          );
-          if (top3El) {
-            gsap.to(top3El, {
-              x: "-1rem",
-              y: "-1.5rem",
-              duration: 1.5,
-              ease: "customEase",
-              overwrite: true,
-            });
-          }
-          const top4El = document.querySelector(
-            ".hero-section-grid-top__item:nth-child(4)"
-          );
-          if (top4El) {
-            gsap.to(top4El, {
-              x: "-1rem",
-              y: "0.6rem",
-              duration: 1.5,
-              ease: "customEase",
-              overwrite: true,
-            });
-          }
-          const bottom4El = document.querySelector(
-            ".hero-section-grid-bottom__item:nth-child(4)"
-          );
-          if (bottom4El) {
-            gsap.to(bottom4El, {
-              x: "-3.55rem",
-              y: 0,
-              duration: 1.5,
-              ease: "customEase",
-              overwrite: true,
-            });
-          }
-          const bottom3Mask = document.querySelector(
-            ".hero-section-grid-bottom__item:nth-child(3) .mask-image"
-          );
           if (bottom3Mask) {
             gsap.to(bottom3Mask, {
               y: "0%",
@@ -759,56 +874,59 @@ function App() {
       if (topToHide.length) gsap.set(topToHide, { autoAlpha: 0 });
       if (bottomToHide.length) gsap.set(bottomToHide, { autoAlpha: 0 });
 
-      // After all items are positioned, start moving hero-section-grid up
-      gsap.delayedCall(1.5, () => {
-        const heroSectionGrid = document.querySelector(".hero-section-grid");
-        if (heroSectionGrid) {
-          gsap.to(heroSectionGrid, {
-            y: "-100vh",
-            duration: 20,
-            ease: "none",
-            overwrite: true,
-          });
-        }
+      // Start moving hero-section-grid up immediately
+      const heroSectionGrid = document.querySelector(".hero-section-grid");
+      if (heroSectionGrid) {
+        gsap.to(heroSectionGrid, {
+          y: "-100vh",
+          duration: 20,
+          ease: "none",
+          overwrite: true,
+        });
+      }
 
-        // Sync vertical ticker to continue upward at the same speed (infinite)
-        const verticalTicker = document.querySelector(".vertical-ticker");
-        if (verticalTicker) {
-          // Duplicate children once to enable seamless looping
-          if (!verticalTicker.dataset.duplicated) {
-            verticalTicker.dataset.duplicated = "true";
-            const children = Array.from(verticalTicker.children);
-            children.forEach((child) => {
-              verticalTicker.appendChild(child.cloneNode(true));
-            });
-          }
-          // Calculate one cycle height (first half of content)
-          const cycleHeightPx = verticalTicker.scrollHeight / 2;
-          const vhPx = window.innerHeight || 1;
-          const durationPer100vh = 20; // 100vh in 20s (same speed as grid)
-          const duration = (cycleHeightPx / vhPx) * durationPer100vh;
-          // Start from current y (or 0) and loop seamlessly
-          gsap.set(verticalTicker, { willChange: "transform" });
-          gsap.to(verticalTicker, {
-            y: -cycleHeightPx,
-            duration,
-            ease: "none",
-            repeat: -1,
-            onRepeat: () => gsap.set(verticalTicker, { y: 0 }),
-            overwrite: true,
+      // Sync vertical ticker to continue upward at the same speed (infinite)
+      const verticalTicker = document.querySelector(".vertical-ticker");
+      if (verticalTicker) {
+        if (!verticalTicker.dataset.duplicated) {
+          verticalTicker.dataset.duplicated = "true";
+          const children = Array.from(verticalTicker.children);
+          children.forEach((child) => {
+            verticalTicker.appendChild(child.cloneNode(true));
           });
         }
+        const cycleHeightPx = verticalTicker.scrollHeight / 2;
+        const vhPx = window.innerHeight || 1;
+        const durationPer100vh = 20;
+        const duration = (cycleHeightPx / vhPx) * durationPer100vh;
+        gsap.set(verticalTicker, { willChange: "transform" });
+        gsap.to(verticalTicker, {
+          y: -cycleHeightPx,
+          duration,
+          ease: "none",
+          repeat: -1,
+          onRepeat: () => gsap.set(verticalTicker, { y: 0 }),
+          overwrite: true,
+        });
+      }
 
-        // Keep 3rd bottom item in place by countering the grid movement (single pass)
-        if (bottomItem3[0]) {
-          gsap.to(bottomItem3[0], {
-            y: "100vh",
-            duration: 20,
-            ease: "none",
-            overwrite: true,
-          });
-        }
+      // Keep 3rd bottom item in place by countering the grid movement
+      if (bottomItem3[0]) {
+        gsap.to(bottomItem3[0], {
+          y: "100vh",
+          duration: 20,
+          ease: "none",
+          overwrite: true,
+        });
+      }
+
+      // Line up key items concurrently with slight stagger
+      const tlLineup = gsap.timeline({
+        defaults: { duration: 1.5, ease: "customEase", overwrite: true },
       });
+      if (topItem3[0]) tlLineup.to(topItem3[0], { y: "-2.7rem" }, 0);
+      if (topItem4[0]) tlLineup.to(topItem4[0], { x: "-3.55rem" }, 0.1);
+      if (bottomItem4[0]) tlLineup.to(bottomItem4[0], { y: "1rem" }, 0.2);
     } else {
       // Restore visibility only when switching 2 → 1
       if (prevTabForGrid.current === 2 && activeTab === 1) {
@@ -880,21 +998,41 @@ function App() {
     const heroSectionGrid = document.querySelector(".hero-section-grid");
 
     if (isLayoutReversed) {
-      // Only swap positions horizontally (no height changes)
       const gridX =
         activeTab === 2 ? "-160%" : activeTab === 3 ? "-130%" : "-100%";
       gsap.to(heroSectionGrid, {
         x: gridX,
         duration: 1.5,
         ease: "customEase",
+        onStart: () => {
+          reversingLockCountRef.current += 1;
+          isReversingRef.current = true;
+        },
+        onComplete: () => {
+          reversingLockCountRef.current -= 1;
+          if (reversingLockCountRef.current <= 0) {
+            reversingLockCountRef.current = 0;
+            isReversingRef.current = false;
+          }
+        },
       });
       gsap.to(heroSectionFrame, {
-        x: "167%",
+        xPercent: 167,
         duration: 1.5,
         ease: "customEase",
+        onStart: () => {
+          reversingLockCountRef.current += 1;
+          isReversingRef.current = true;
+        },
+        onComplete: () => {
+          reversingLockCountRef.current -= 1;
+          if (reversingLockCountRef.current <= 0) {
+            reversingLockCountRef.current = 0;
+            isReversingRef.current = false;
+          }
+        },
       });
 
-      // On tab 3, also shift the 3rd bottom item by 7.35rem
       if (activeTab === 3) {
         const bottom3El = document.querySelector(
           ".hero-section-grid-bottom__item:nth-child(3)"
@@ -909,7 +1047,6 @@ function App() {
         }
       }
 
-      // On tab 4, move vertical ticker to the right: 10.7rem
       if (activeTab === 4) {
         const verticalTickerEl = document.querySelector(".vertical-ticker");
         if (verticalTickerEl) {
@@ -924,20 +1061,59 @@ function App() {
           });
         }
       }
+
+      if (activeTab <= 2) {
+        const topItemsAll = document.querySelectorAll(
+          ".hero-section-grid-top__item"
+        );
+        const bottomItemsAll = document.querySelectorAll(
+          ".hero-section-grid-bottom__item"
+        );
+        const tlStaggerIn = gsap.timeline({ defaults: { ease: "customEase" } });
+        if (topItemsAll.length)
+          tlStaggerIn
+            .to(topItemsAll, { y: "-0.6rem", duration: 0.5, stagger: 0.06 }, 0)
+            .to(topItemsAll, { y: 0, duration: 0.6, stagger: 0.06 }, ">-0.2");
+        if (bottomItemsAll.length)
+          tlStaggerIn
+            .to(
+              bottomItemsAll,
+              { y: "0.6rem", duration: 0.5, stagger: 0.06 },
+              0.05
+            )
+            .to(
+              bottomItemsAll,
+              { y: 0, duration: 0.6, stagger: 0.06 },
+              ">-0.2"
+            );
+
+        const frameMask = document.querySelector(
+          ".hero-section-frame .mask-image"
+        );
+        if (frameMask) {
+          const prevTransition = frameMask.style.transition;
+          gsap.set(frameMask, { transition: "none" });
+          const tlMask = gsap.timeline({
+            defaults: { ease: "customEase" },
+            onComplete: () => {
+              frameMask.style.transition = prevTransition;
+            },
+          });
+          tlMask.to(frameMask, { y: "3rem", duration: 1 }, 0);
+        }
+      }
     } else {
-      // Only swap positions back horizontally (no height changes)
       gsap.to(heroSectionGrid, {
         x: "0%",
         duration: 1.5,
         ease: "customEase",
       });
       gsap.to(heroSectionFrame, {
-        x: "0%",
+        xPercent: 0,
         duration: 1.5,
         ease: "customEase",
       });
 
-      // Reset the 3rd bottom item position when toggling reverse off on tab 3
       if (activeTab === 3) {
         const bottom3El = document.querySelector(
           ".hero-section-grid-bottom__item:nth-child(3)"
@@ -952,7 +1128,6 @@ function App() {
         }
       }
 
-      // On tab 4, move vertical ticker back to right: 4.7rem
       if (activeTab === 4) {
         const verticalTickerEl = document.querySelector(".vertical-ticker");
         if (verticalTickerEl) {
@@ -963,8 +1138,313 @@ function App() {
           });
         }
       }
+
+      if (activeTab <= 2) {
+        const topItemsAll = document.querySelectorAll(
+          ".hero-section-grid-top__item"
+        );
+        const bottomItemsAll = document.querySelectorAll(
+          ".hero-section-grid-bottom__item"
+        );
+        const tlStaggerOut = gsap.timeline({
+          defaults: { ease: "customEase" },
+        });
+        if (topItemsAll.length)
+          tlStaggerOut
+            .to(
+              topItemsAll,
+              {
+                y: "-0.6rem",
+                duration: 0.5,
+                stagger: { each: 0.06, from: "end" },
+              },
+              0
+            )
+            .to(
+              topItemsAll,
+              { y: 0, duration: 0.6, stagger: { each: 0.06, from: "end" } },
+              ">-0.2"
+            );
+        if (bottomItemsAll.length)
+          tlStaggerOut
+            .to(
+              bottomItemsAll,
+              {
+                y: "0.6rem",
+                duration: 0.5,
+                stagger: { each: 0.06, from: "end" },
+              },
+              0.05
+            )
+            .to(
+              bottomItemsAll,
+              { y: 0, duration: 0.6, stagger: { each: 0.06, from: "end" } },
+              ">-0.2"
+            );
+
+        const frameMask = document.querySelector(
+          ".hero-section-frame .mask-image"
+        );
+        if (frameMask) {
+          const prevTransition = frameMask.style.transition;
+          gsap.set(frameMask, { transition: "none" });
+          const tlMask = gsap.timeline({
+            defaults: { ease: "customEase" },
+            onComplete: () => {
+              frameMask.style.transition = prevTransition;
+            },
+          });
+          tlMask.to(frameMask, { y: 0, duration: 1 }, 0);
+        }
+      }
     }
   }, [isLayoutReversed]);
+
+  useEffect(() => {
+    // Only enable parallax on tabs 1 and 2. Disable immediately on 3/4.
+    // Teardown any previous.
+    if (parallaxQuickRef.current.length) {
+      parallaxQuickRef.current.forEach(({ el, baseX = 0, baseY = 0 }) => {
+        gsap.killTweensOf(el);
+        if (el) el.style.willChange = "";
+        gsap.set(el, { x: baseX, y: baseY });
+      });
+      parallaxQuickRef.current = [];
+    }
+    if (activeTab <= 2) {
+      const targets = document.querySelectorAll(
+        ".hero-section-grid-top__item, .hero-section-grid-bottom__item"
+      );
+      targets.forEach((el) => {
+        const depthAttr = parseFloat(el.getAttribute("data-depth"));
+        const depth = Number.isFinite(depthAttr) ? depthAttr : 1.3;
+        el.style.willChange = "transform";
+        const xTo = gsap.quickTo(el, "x", {
+          duration: 0.6,
+          ease: "customEase",
+        });
+        const yTo = gsap.quickTo(el, "y", {
+          duration: 0.6,
+          ease: "customEase",
+        });
+        parallaxQuickRef.current.push({
+          el,
+          xTo,
+          yTo,
+          depth,
+          baseX: 0,
+          baseY: 0,
+        });
+      });
+      // Include hero-section-frame with a subtler depth
+      const frameEl = document.querySelector(".hero-section-frame");
+      if (frameEl) {
+        const depthAttr = parseFloat(frameEl.getAttribute("data-depth"));
+        const depth = Number.isFinite(depthAttr) ? depthAttr : 0.8;
+        frameEl.style.willChange = "transform";
+        const xTo = gsap.quickTo(frameEl, "x", {
+          duration: 0.6,
+          ease: "customEase",
+        });
+        const yTo = gsap.quickTo(frameEl, "y", {
+          duration: 0.6,
+          ease: "customEase",
+        });
+        const baseX = 0;
+        const baseY = 0;
+        parallaxQuickRef.current.push({
+          el: frameEl,
+          xTo,
+          yTo,
+          depth,
+          baseX,
+          baseY,
+        });
+      }
+    } else if (activeTab === 3) {
+      tab3ParallaxReadyRef.current = false;
+      if (tab3ParallaxDelayRef.current) tab3ParallaxDelayRef.current.kill();
+      const rem =
+        parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const baseX = -1 * rem;
+      const baseY = -1.5 * rem;
+      tab3ParallaxDelayRef.current = gsap.delayedCall(1.5, () => {
+        const top3 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(3)"
+        );
+        if (top3) {
+          const depthAttr = parseFloat(top3.getAttribute("data-depth"));
+          const depth = Number.isFinite(depthAttr) ? depthAttr : 1.0;
+          top3.style.willChange = "transform";
+          const xTo = gsap.quickTo(top3, "x", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const yTo = gsap.quickTo(top3, "y", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          parallaxQuickRef.current.push({
+            el: top3,
+            xTo,
+            yTo,
+            depth,
+            baseX,
+            baseY,
+          });
+        }
+        const top4 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(4)"
+        );
+        if (top4) {
+          const depthAttr = parseFloat(top4.getAttribute("data-depth"));
+          const depth = Number.isFinite(depthAttr) ? depthAttr : 0.9;
+          top4.style.willChange = "transform";
+          const xTo = gsap.quickTo(top4, "x", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const yTo = gsap.quickTo(top4, "y", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const baseX4 = -1 * rem;
+          const baseY4 = 0.6 * rem;
+          parallaxQuickRef.current.push({
+            el: top4,
+            xTo,
+            yTo,
+            depth,
+            baseX: baseX4,
+            baseY: baseY4,
+          });
+        }
+        const bottom3 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3)"
+        );
+        if (bottom3) {
+          const depthAttr = parseFloat(bottom3.getAttribute("data-depth"));
+          const depth = Number.isFinite(depthAttr) ? depthAttr : 0.6;
+          bottom3.style.willChange = "transform";
+          const xTo = gsap.quickTo(bottom3, "x", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const yTo = gsap.quickTo(bottom3, "y", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const baseXb3 = -10.48 * rem;
+          const baseYb3 = 0 * rem;
+          parallaxQuickRef.current.push({
+            el: bottom3,
+            xTo,
+            yTo,
+            depth,
+            baseX: baseXb3,
+            baseY: baseYb3,
+          });
+        }
+        const bottom4 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(4)"
+        );
+        if (bottom4) {
+          const depthAttr = parseFloat(bottom4.getAttribute("data-depth"));
+          const depth = Number.isFinite(depthAttr) ? depthAttr : 0.9;
+          bottom4.style.willChange = "transform";
+          const xTo = gsap.quickTo(bottom4, "x", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const yTo = gsap.quickTo(bottom4, "y", {
+            duration: 0.6,
+            ease: "customEase",
+          });
+          const baseXb4 = -3.55 * rem;
+          const baseYb4 = 0 * rem;
+          parallaxQuickRef.current.push({
+            el: bottom4,
+            xTo,
+            yTo,
+            depth,
+            baseX: baseXb4,
+            baseY: baseYb4,
+          });
+        }
+        tab3ParallaxReadyRef.current = true;
+      });
+    }
+    return () => {
+      // On unmount or dependency change, ensure we clean up
+      if (parallaxQuickRef.current.length) {
+        parallaxQuickRef.current.forEach(({ el, baseX = 0, baseY = 0 }) => {
+          gsap.killTweensOf(el);
+          if (el) el.style.willChange = "";
+          gsap.set(el, { x: baseX, y: baseY });
+        });
+        parallaxQuickRef.current = [];
+      }
+      tab3ParallaxReadyRef.current = false;
+      if (tab3ParallaxDelayRef.current) {
+        tab3ParallaxDelayRef.current.kill();
+        tab3ParallaxDelayRef.current = null;
+      }
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    // Disable any parallax when entering tab 4
+    if (activeTab === 4 && parallaxQuickRef.current.length) {
+      parallaxQuickRef.current.forEach(
+        ({ xTo, yTo, el, baseX = 0, baseY = 0 }) => {
+          gsap.killTweensOf(el);
+          xTo(baseX);
+          yTo(baseY);
+        }
+      );
+      parallaxQuickRef.current = [];
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const preloader = document.querySelector(".preloader");
+    const leftPanel = document.querySelector(".preloader__panel.left");
+    const rightPanel = document.querySelector(".preloader__panel.right");
+    const frameEl = document.querySelector(".hero-section-frame");
+    const topItems = document.querySelectorAll(".hero-section-grid-top__item");
+    const bottomItems = document.querySelectorAll(
+      ".hero-section-grid-bottom__item"
+    );
+    const textInside = document.querySelectorAll(
+      ".text-inside-grid, .text-inside-grid-second"
+    );
+
+    if (!preloader || !leftPanel || !rightPanel) return;
+
+    gsap.set(preloader, {
+      pointerEvents: "auto",
+      autoAlpha: 1,
+      display: "block",
+    });
+    gsap.set([leftPanel, rightPanel], { x: 0 });
+    if (frameEl) gsap.set(frameEl, { autoAlpha: 0 });
+    if (topItems && topItems.length) gsap.set(topItems, { autoAlpha: 0 });
+    if (bottomItems && bottomItems.length)
+      gsap.set(bottomItems, { autoAlpha: 0 });
+    if (textInside && textInside.length) gsap.set(textInside, { autoAlpha: 0 });
+
+    const tl = gsap.timeline({ defaults: { ease: "customEase" } });
+
+    tl.to(leftPanel, { x: "-100%", duration: 1.5 }, 0)
+      .to(rightPanel, { x: "100%", duration: 1.5 }, 0)
+      .add(() => {
+        gsap.set(preloader, { pointerEvents: "none", display: "none" });
+      })
+      .to(frameEl, { autoAlpha: 1, duration: 1.1 }, ">")
+      .to(topItems, { autoAlpha: 1, duration: 1.1, stagger: 0.12 }, "<")
+      .to(bottomItems, { autoAlpha: 1, duration: 1.1, stagger: 0.12 }, "<")
+      .to(textInside, { autoAlpha: 1, duration: 1.1, stagger: 0.12 }, "<");
+  }, []);
 
   return (
     <>
@@ -991,7 +1471,7 @@ function App() {
             className={`tab ${"prev"}`}
             onClick={handlePrevTab}
             aria-label="Previous"
-            disabled={activeTab === 1}
+            disabled={activeTab === 1 || isAnimatingTabs}
           >
             ←
           </button>
@@ -1002,11 +1482,16 @@ function App() {
             className={`tab ${"next"}`}
             onClick={handleNextTab}
             aria-label="Next"
-            disabled={activeTab === 4}
+            disabled={activeTab === 4 || isAnimatingTabs}
           >
             →
           </button>
         </div>
+      </div>
+
+      <div className="preloader">
+        <div className="preloader__panel left"></div>
+        <div className="preloader__panel right"></div>
       </div>
 
       <section
@@ -1091,7 +1576,7 @@ function App() {
             <div className="hero-section-grid-bottom__item">
               <img
                 className="inside-image"
-                src="/images/Card_07.png"
+                src="/images/WD_03.png"
                 alt="image"
               />
               <img
@@ -1103,7 +1588,7 @@ function App() {
             <div className="hero-section-grid-bottom__item">
               <img
                 className="inside-image"
-                src="/images/Card_08.png"
+                src="/images/WD_0101.png"
                 alt="image"
               />
             </div>
