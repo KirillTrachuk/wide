@@ -175,6 +175,35 @@ function App() {
   const handleReverseRight = () => {
     setHasLayoutChanged(true);
     setIsLayoutReversed(false);
+    if (activeTab === 3) {
+      const frame34Img = document.querySelector(
+        ".hero-section-frame-34 .hero-section-frame__image"
+      );
+      if (frame34Img) {
+        const prevTransition = frame34Img.style.transition;
+        gsap.killTweensOf(frame34Img);
+        gsap.set(frame34Img, { willChange: "clip-path", transition: "none" });
+        gsap.set(frame34Img, {
+          clipPath: "polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)",
+        });
+        frame34Img.style.transition = prevTransition;
+        gsap.set(frame34Img, { willChange: "" });
+      }
+      const bottom3El = document.querySelector(
+        ".hero-section-grid-bottom__item:nth-child(3)"
+      );
+      if (bottom3El) {
+        gsap.killTweensOf(bottom3El);
+        gsap.set(bottom3El, { willChange: "clip-path" });
+        gsap.to(bottom3El, {
+          clipPath: "polygon(1% 1%, 99% 1%, 99% 99%, 0% 100%)",
+          duration: 0.8,
+          ease: "customEase",
+          overwrite: true,
+          onComplete: () => gsap.set(bottom3El, { willChange: "" }),
+        });
+      }
+    }
   };
 
   const getSecondImageClass = () => {
@@ -1000,49 +1029,144 @@ function App() {
     if (isLayoutReversed) {
       const gridX =
         activeTab === 2 ? "-160%" : activeTab === 3 ? "-130%" : "-100%";
-      gsap.to(heroSectionGrid, {
-        x: gridX,
-        duration: 1.5,
-        ease: "customEase",
-        onStart: () => {
-          reversingLockCountRef.current += 1;
-          isReversingRef.current = true;
-        },
-        onComplete: () => {
-          reversingLockCountRef.current -= 1;
-          if (reversingLockCountRef.current <= 0) {
-            reversingLockCountRef.current = 0;
-            isReversingRef.current = false;
-          }
-        },
-      });
-      gsap.to(heroSectionFrame, {
-        xPercent: 167,
-        duration: 1.5,
-        ease: "customEase",
-        onStart: () => {
-          reversingLockCountRef.current += 1;
-          isReversingRef.current = true;
-        },
-        onComplete: () => {
-          reversingLockCountRef.current -= 1;
-          if (reversingLockCountRef.current <= 0) {
-            reversingLockCountRef.current = 0;
-            isReversingRef.current = false;
-          }
-        },
-      });
+      if (activeTab === 2) {
+        const top3 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(3)"
+        );
+        const top4 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(4)"
+        );
+        const bottom3 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3)"
+        );
+        const bottom4 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(4)"
+        );
+        const items = [top3, top4, bottom3, bottom4].filter(Boolean);
+        gsap.set(heroSectionFrame, {
+          willChange: "clip-path",
+          clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+        });
+        if (items.length) {
+          gsap.set(items, {
+            willChange: "clip-path",
+            clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+          });
+        }
+        const tigSecond = document.querySelector(".text-inside-grid-second");
+        const tlRev2 = gsap.timeline({
+          defaults: { ease: "customEase" },
+          onStart: () => {
+            reversingLockCountRef.current += 1;
+            isReversingRef.current = true;
+          },
+          onComplete: () => {
+            if (items.length) gsap.set(items, { willChange: "" });
+            gsap.set(heroSectionFrame, { willChange: "" });
+            reversingLockCountRef.current -= 1;
+            if (reversingLockCountRef.current <= 0) {
+              reversingLockCountRef.current = 0;
+              isReversingRef.current = false;
+            }
+          },
+        });
+        if (tigSecond) tlRev2.to(tigSecond, { autoAlpha: 0, duration: 0.2 }, 0);
+        tlRev2.to(
+          heroSectionFrame,
+          {
+            clipPath: "polygon(90% 100%, 100% 100%, 100% 100%, 90% 100%)",
+            duration: 1.2,
+          },
+          0
+        );
+        if (items.length) {
+          tlRev2.to(
+            items,
+            {
+              clipPath: "polygon(0 0, 0% 0, 0% 100%, 0% 100%)",
+              duration: 1.2,
+              stagger: { each: 0.06, from: "start" },
+            },
+            0
+          );
+        }
+        tlRev2
+          .to(heroSectionGrid, { x: gridX, duration: 0.1 }, ">")
+          .to(heroSectionFrame, { xPercent: 167, duration: 0.1 }, "<");
+        tlRev2.set(
+          heroSectionFrame,
+          { clipPath: "polygon(0 100%, 0% 100%, 0% 100%, 0 100%)" },
+          ">-0.05"
+        );
+        tlRev2.add("revealOpen");
+        tlRev2.to(
+          heroSectionFrame,
+          {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0 100%)",
+            duration: 1.2,
+          },
+          "revealOpen"
+        );
+        if (items.length) {
+          tlRev2.to(
+            items,
+            {
+              clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+              duration: 1.2,
+              stagger: 0,
+            },
+            "revealOpen"
+          );
+        }
+        if (tigSecond)
+          tlRev2.to(tigSecond, { autoAlpha: 1, duration: 0.2 }, ">-0.05");
+      } else {
+        gsap.to(heroSectionGrid, {
+          x: gridX,
+          duration: 1.5,
+          ease: "customEase",
+        });
+        gsap.to(heroSectionFrame, {
+          xPercent: 167,
+          duration: 1.5,
+          ease: "customEase",
+        });
+      }
 
       if (activeTab === 3) {
         const bottom3El = document.querySelector(
           ".hero-section-grid-bottom__item:nth-child(3)"
         );
         if (bottom3El) {
+          gsap.killTweensOf(bottom3El);
+          gsap.set(bottom3El, {
+            willChange: "clip-path",
+            // ensure starting from fully open if needed
+            clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+          });
           gsap.to(bottom3El, {
-            x: "7.35rem",
-            duration: 1.5,
+            clipPath: "polygon(0 100%, 0% 100%, 0% 100%, 0% 100%)",
+            duration: 1.2,
             ease: "customEase",
             overwrite: true,
+            onComplete: () => gsap.set(bottom3El, { willChange: "" }),
+          });
+        }
+        const frame34Img = document.querySelector(
+          ".hero-section-frame-34 .hero-section-frame__image"
+        );
+        if (frame34Img) {
+          const prevTransition = frame34Img.style.transition;
+          gsap.set(frame34Img, { willChange: "clip-path", transition: "none" });
+          gsap.to(frame34Img, {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 1.2,
+            ease: "customEase",
+            overwrite: true,
+            onComplete: () => {
+              frame34Img.style.transition = prevTransition;
+              gsap.set(frame34Img, { willChange: "" });
+            },
           });
         }
       }
@@ -1060,9 +1184,46 @@ function App() {
             ease: "customEase",
           });
         }
+        const frame34Img = document.querySelector(
+          ".hero-section-frame-34 .hero-section-frame__image"
+        );
+        if (frame34Img) {
+          const prevTransition = frame34Img.style.transition;
+          gsap.set(frame34Img, { willChange: "clip-path", transition: "none" });
+          gsap.set(frame34Img, {
+            clipPath: "polygon(96% 0, 100% 0, 100% 100%, 96% 100%)",
+          });
+          gsap.to(frame34Img, {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 1.2,
+            ease: "customEase",
+            overwrite: true,
+            onComplete: () => {
+              frame34Img.style.transition = prevTransition;
+              gsap.set(frame34Img, { willChange: "" });
+            },
+          });
+        }
+        const bottom3El = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3)"
+        );
+        if (bottom3El) {
+          gsap.killTweensOf(bottom3El, "clipPath");
+          gsap.set(bottom3El, {
+            willChange: "clip-path",
+            clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+          });
+          gsap.to(bottom3El, {
+            clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+            duration: 1.2,
+            ease: "customEase",
+            overwrite: false,
+            onComplete: () => gsap.set(bottom3El, { willChange: "" }),
+          });
+        }
       }
 
-      if (activeTab <= 2) {
+      if (activeTab === 1) {
         const topItemsAll = document.querySelectorAll(
           ".hero-section-grid-top__item"
         );
@@ -1103,27 +1264,138 @@ function App() {
         }
       }
     } else {
-      gsap.to(heroSectionGrid, {
-        x: "0%",
-        duration: 1.5,
-        ease: "customEase",
-      });
-      gsap.to(heroSectionFrame, {
-        xPercent: 0,
-        duration: 1.5,
-        ease: "customEase",
-      });
+      if (activeTab === 2) {
+        const top3 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(3)"
+        );
+        const top4 = document.querySelector(
+          ".hero-section-grid-top__item:nth-child(4)"
+        );
+        const bottom3 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(3)"
+        );
+        const bottom4 = document.querySelector(
+          ".hero-section-grid-bottom__item:nth-child(4)"
+        );
+        const items = [top3, top4, bottom3, bottom4].filter(Boolean);
+        gsap.set(heroSectionFrame, {
+          willChange: "clip-path",
+          clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+        });
+        if (items.length) {
+          gsap.set(items, {
+            willChange: "clip-path",
+            clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+          });
+        }
+        const tigSecond = document.querySelector(".text-inside-grid-second");
+        const tlRev2Back = gsap.timeline({
+          defaults: { ease: "customEase" },
+          onStart: () => {
+            reversingLockCountRef.current += 1;
+            isReversingRef.current = true;
+          },
+          onComplete: () => {
+            if (items.length) gsap.set(items, { willChange: "" });
+            gsap.set(heroSectionFrame, { willChange: "" });
+            reversingLockCountRef.current -= 1;
+            if (reversingLockCountRef.current <= 0) {
+              reversingLockCountRef.current = 0;
+              isReversingRef.current = false;
+            }
+          },
+        });
+        if (tigSecond)
+          tlRev2Back.to(tigSecond, { autoAlpha: 0, duration: 0.2 }, 0);
+        tlRev2Back.to(
+          heroSectionFrame,
+          {
+            clipPath: "polygon(0 100%, 0% 100%, 0% 100%, 0% 100%)",
+            duration: 0.8,
+          },
+          0
+        );
+        if (items.length) {
+          tlRev2Back.to(
+            items,
+            {
+              clipPath: "polygon(0 0, 0% 0, 0% 100%, 0% 100%)",
+              duration: 0.8,
+              stagger: { each: 0.06, from: "start" },
+            },
+            0
+          );
+        }
+        tlRev2Back
+          .to(heroSectionGrid, { x: "0%", duration: 0.3 }, ">")
+          .to(heroSectionFrame, { xPercent: 0, duration: 0.3 }, "<");
+        tlRev2Back.to(
+          heroSectionFrame,
+          {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 0.8,
+          },
+          ">"
+        );
+        if (items.length) {
+          tlRev2Back.to(
+            items,
+            {
+              clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+              duration: 0.8,
+              stagger: 0,
+            },
+            ">-0.05"
+          );
+        }
+        tlRev2Back.add("revealOpenBack");
+        tlRev2Back.to(
+          heroSectionFrame,
+          {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 0.8,
+          },
+          "revealOpenBack"
+        );
+        if (items.length) {
+          tlRev2Back.to(
+            items,
+            {
+              clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+              duration: 0.8,
+              stagger: 0,
+            },
+            "revealOpenBack"
+          );
+        }
+        if (tigSecond)
+          tlRev2Back.to(tigSecond, { autoAlpha: 1, duration: 0.2 }, ">-0.05");
+      } else {
+        gsap.to(heroSectionGrid, {
+          x: "0%",
+          duration: 1.5,
+          ease: "customEase",
+        });
+        gsap.to(heroSectionFrame, {
+          xPercent: 0,
+          duration: 1.5,
+          ease: "customEase",
+        });
+      }
 
       if (activeTab === 3) {
         const bottom3El = document.querySelector(
           ".hero-section-grid-bottom__item:nth-child(3)"
         );
         if (bottom3El) {
+          gsap.killTweensOf(bottom3El);
+          gsap.set(bottom3El, { willChange: "clip-path" });
           gsap.to(bottom3El, {
-            x: "-10.48rem",
-            duration: 1.5,
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 1.2,
             ease: "customEase",
             overwrite: true,
+            onComplete: () => gsap.set(bottom3El, { willChange: "" }),
           });
         }
       }
@@ -1137,9 +1409,21 @@ function App() {
             ease: "customEase",
           });
         }
+        const frame34Img = document.querySelector(
+          ".hero-section-frame-34 .hero-section-frame__image"
+        );
+        if (frame34Img) {
+          const prevTransition = frame34Img.style.transition;
+          gsap.set(frame34Img, { willChange: "clip-path", transition: "none" });
+          gsap.set(frame34Img, {
+            clipPath: "polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)",
+          });
+          frame34Img.style.transition = prevTransition;
+          gsap.set(frame34Img, { willChange: "" });
+        }
       }
 
-      if (activeTab <= 2) {
+      if (activeTab === 1) {
         const topItemsAll = document.querySelectorAll(
           ".hero-section-grid-top__item"
         );
@@ -1523,6 +1807,23 @@ function App() {
             <img
               className="mask-image-r"
               src="/images/mask-wide-test2.svg"
+              alt="mask"
+            />
+          </div>
+        </div>
+        <div
+          className="hero-section-frame-34"
+          aria-hidden={!(activeTab === 3 || activeTab === 4)}
+        >
+          <div className="hero-section-frame__image">
+            <img
+              className="background-image"
+              src="/images/WD_05.png"
+              alt="background"
+            />
+            <img
+              className="mask-image"
+              src="/images/mask-wide-test1.svg"
               alt="mask"
             />
           </div>
